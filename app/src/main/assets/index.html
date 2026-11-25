@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#13241a">
+<title>Photo shoots</title>
+<style>
+  :root{--bg:#13241a;--card:#1d3a28;--cream:#f1e8d2;--ink:#f5f1e6;--muted:#b9c2b5;--accent:#2f7a4f;--danger:#8a3b2e;--line:#2f5a40}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+  button,.btn{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;cursor:pointer;text-decoration:none;display:inline-block}
+  button:disabled{opacity:.4;cursor:default}
+  .btn.primary{background:var(--accent);border-color:var(--accent)}
+  .btn.danger{background:var(--danger);border-color:var(--danger)}
+  header{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));background:var(--bg);border-bottom:1px solid #26402f}
+  header h1{font-family:Georgia,"Times New Roman",serif;font-weight:normal;font-size:18px;margin:0;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  main{padding:16px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px))}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .sec{font-size:15px;font-weight:600;margin:22px 0 8px;display:flex;gap:8px;align-items:baseline}
+  .list{display:flex;flex-direction:column;gap:10px}
+  a.item{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:12px;padding:14px;color:inherit;text-decoration:none}
+  .muted{color:var(--muted);font-size:13px}
+  .empty{padding:30px 10px;text-align:center;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .grid .cell{display:block;position:relative;aspect-ratio:3/4;border-radius:8px;overflow:hidden;background:#0b150f;border:2px solid transparent;color:inherit;text-decoration:none}
+  .grid .cell img{width:100%;height:100%;object-fit:cover;display:block}
+  .grid .cell.main{border-color:var(--cream)}
+  .grid.pick .cell{cursor:pointer}
+  .grid.pick .cell.sel{border-color:#7fd19c}
+  .grid.pick .cell.sel img{opacity:.6}
+  .grid.pick .cell.sel::after{content:"✓";position:absolute;right:5px;top:5px;background:#7fd19c;color:#13241a;width:24px;height:24px;border-radius:50%;text-align:center;line-height:24px;font-weight:700}
+  .badge{position:absolute;left:4px;top:4px;background:var(--cream);color:#13241a;font-size:11px;padding:2px 6px;border-radius:6px}
+  input[type=file]{display:none}
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--card);border-top:1px solid var(--line);
+    padding:12px max(16px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .bar[hidden]{display:none}
+  .bar .count{flex:1;min-width:90px}
+  #toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--cream);color:#13241a;padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center;z-index:50}
+  #toast.show{opacity:1}
+  .sheet{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center;z-index:40}
+  .sheet .panel{background:var(--card);width:100%;max-width:520px;border-radius:16px 16px 0 0;padding:16px;display:flex;flex-direction:column;gap:10px;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+  .sheet .panel .btn{width:100%;text-align:center}
+
+  /* ---- customer gallery (white) ---- */
+  body[data-mode="show"],body[data-mode="show"] html{background:#fff}
+  .mosaic{position:fixed;inset:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:6px;padding:6px;background:#fff;
+    padding-top:calc(6px + env(safe-area-inset-top,0px));padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+  .mosaic .tile{position:relative;overflow:hidden;background:#f2f2f2;display:block;min-height:0}
+  .mosaic .tile.solo{grid-column:span 2}
+  .mosaic .tile img{width:100%;height:100%;object-fit:cover;display:block}
+  .exitzone{position:fixed;left:0;top:0;width:80px;height:80px;z-index:30}
+  .viewer{position:fixed;inset:0;background:#fff;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch}
+  .viewer img{flex:0 0 100%;width:100%;height:100%;object-fit:contain;scroll-snap-align:start;scroll-snap-stop:always}
+  .vbar{position:fixed;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;z-index:20;pointer-events:none;color:#222}
+  .vbar a{pointer-events:auto;color:#222;text-decoration:none;background:#eee;padding:8px 12px;border-radius:10px}
+  .vcount{background:#eee;color:#222;padding:6px 10px;border-radius:10px;font-size:13px}
+  .blank{position:fixed;inset:0;background:#fff;color:#777;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+
+<script>
+/* ============ storage (IndexedDB, all on this phone) ============ */
+const $ = s => document.querySelector(s);
+const app = $('#app');
+const POOL = '';               // seriesId value for pictures not yet assigned to a pose
+let db, rv = 0, urls = [], wake = null;
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const burl = blob => { const u = URL.createObjectURL(blob); urls.push(u); return u; };
+
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('photoshoots', 1);
+    r.onupgradeneeded = () => {
+      const d = r.result;
+      d.createObjectStore('shoots', { keyPath: 'id' });
+      d.createObjectStore('series', { keyPath: 'id' }).createIndex('shootId', 'shootId');
+      d.createObjectStore('pics', { keyPath: 'id' }).createIndex('seriesId', 'seriesId');
+    };
+    r.onsuccess = () => { db = r.result; res(); };
+    r.onerror = () => rej(r.error);
+  });
+}
+const R = req => new Promise((res, rej) => { req.onsuccess = () => res(req.result); req.onerror = () => rej(req.error); });
+const store = (name, mode = 'readonly') => db.transaction(name, mode).objectStore(name);
+const put = (s, v) => R(store(s, 'readwrite').put(v));
+const get = (s, k) => R(store(s).get(k));
+const del = (s, k) => R(store(s, 'readwrite').delete(k));
+const byIndex = (s, idx, val) => R(store(s).index(idx).getAll(val));
+const bySort = arr => arr.sort((a, b) => a.order - b.order);
+const pool = async shootId => bySort((await byIndex('pics', 'seriesId', POOL)).filter(p => p.shootId === shootId));
+
+/* ============ photo processing: shrink on the phone before saving ============ */
+async function squash(file, maxSide, quality) {
+  const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+  const s = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.round(bmp.width * s); c.height = Math.round(bmp.height * s);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close && bmp.close();
+  return new Promise(res => c.toBlob(res, 'image/jpeg', quality));
+}
+async function makeFiles(files) {
+  const out = [];
+  let failed = 0;
+  for (let i = 0; i < files.length; i++) {
+    toast(`Processing ${i + 1} / ${files.length}…`, true);
+    try {
+      out.push({ full: await squash(files[i], 1800, 0.85), thumb: await squash(files[i], 600, 0.8) });
+    } catch (e) {
+      failed++; console.error(files[i].name, e);
+    }
+    await new Promise(r => setTimeout(r, 0));
+  }
+  hideToast();
+  if (failed) toast(`${failed} file(s) could not be read (try JPG or PNG)`);
+  return out;
+}
+
+/* ============ data operations ============ */
+async function addToPool(shootId, files) {
+  const made = await makeFiles(files);
+  const base = Date.now();
+  for (let i = 0; i < made.length; i++) await put('pics', { id: uid(), shootId, seriesId: POOL, order: base + i, ...made[i] });
+  if (made.length) toast(`Added ${made.length} picture(s)`);
+}
+async function makeMains(shootId, ids) {
+  const existing = await byIndex('series', 'shootId', shootId);
+  if (existing.length + ids.length > 6) { toast(`Maximum 6 main pictures (you already have ${existing.length})`); return false; }
+  let order = existing.length;
+  for (const id of ids) {
+    const p = await get('pics', id); if (!p) continue;
+    const sid = uid();
+    p.seriesId = sid; p.order = 0;
+    await put('pics', p);
+    await put('series', { id: sid, shootId, mainId: p.id, order: order++ });
+  }
+  return true;
+}
+async function addToSeries(series, ids) {
+  let o = (await byIndex('pics', 'seriesId', series.id)).length;
+  for (const id of ids) {
+    const p = await get('pics', id); if (!p) continue;
+    p.seriesId = series.id; p.order = o++;
+    await put('pics', p);
+  }
+}
+async function deletePics(ids) { for (const id of ids) await del('pics', id); }
+async function releaseSeries(seriesId) {     // pictures go back to the unassigned pool
+  for (const p of await byIndex('pics', 'seriesId', seriesId)) {
+    p.seriesId = POOL; p.order = Date.now(); await put('pics', p);
+  }
+  await del('series', seriesId);
+}
+async function deleteShoot(shootId) {
+  for (const s of await byIndex('series', 'shootId', shootId)) {
+    for (const p of await byIndex('pics', 'seriesId', s.id)) await del('pics', p.id);
+    await del('series', s.id);
+  }
+  for (const p of await pool(shootId)) await del('pics', p.id);
+  await del('shoots', shootId);
+}
+async function deletePic(series, pic) {      // inside a pose
+  await del('pics', pic.id);
+  const rest = bySort(await byIndex('pics', 'seriesId', series.id));
+  if (!rest.length) { await del('series', series.id); return 'gone'; }
+  if (series.mainId === pic.id) { series.mainId = rest[0].id; await put('series', series); }
+  return 'ok';
+}
+
+/* ============ small UI helpers ============ */
+let tt;
+function toast(msg, sticky) {
+  const el = $('#toast'); el.textContent = msg; el.classList.add('show');
+  clearTimeout(tt); if (!sticky) tt = setTimeout(hideToast, 2200);
+}
+function hideToast() { $('#toast').classList.remove('show'); }
+function sheet(options) {
+  const wrap = document.createElement('div');
+  wrap.className = 'sheet';
+  wrap.innerHTML = `<div class="panel">${options.map((o, i) => `<button class="btn ${o.cls || ''}" data-i="${i}">${esc(o.label)}</button>`).join('')}<button class="btn" data-i="x">Cancel</button></div>`;
+  wrap.onclick = e => {
+    if (e.target === wrap) return wrap.remove();
+    const b = e.target.closest('button'); if (!b) return;
+    wrap.remove();
+    if (b.dataset.i !== 'x') options[+b.dataset.i].fn();
+  };
+  document.body.appendChild(wrap);
+}
+function pickFiles(input, handler) {
+  input.onchange = async e => {
+    const files = [...e.target.files];
+    e.target.value = '';
+    if (files.length) { try { await handler(files); } catch (err) { toast('Error: ' + err.message); } route(); }
+  };
+}
+// Tap-to-select on a grid of pictures; shows the bottom bar while anything is selected.
+function selectable(grid, bar, count, sel) {
+  const refresh = () => { bar.hidden = sel.size === 0; count.textContent = `${sel.size} selected`; };
+  grid.querySelectorAll('.cell[data-id]').forEach(el => el.onclick = () => {
+    const id = el.dataset.id;
+    if (sel.has(id)) { sel.delete(id); el.classList.remove('sel'); }
+    else { sel.add(id); el.classList.add('sel'); }
+    refresh();
+  });
+  refresh();
+}
+const thumbCell = (blob, id, extra = '') => `<div class="cell ${extra}" data-id="${id}"><img src="${burl(blob)}" alt=""></div>`;
+
+/* ============ router ============ */
+function notFound() { app.innerHTML = `<main><p class="empty">Not found.</p><a class="btn" href="#/">Home</a></main>`; }
+
+async function route() {
+  urls.forEach(u => URL.revokeObjectURL(u)); urls = [];
+  const parts = location.hash.replace(/^#\/?/, '').split('/').filter(Boolean);
+  const isShow = parts[0] === 'show';
+  document.body.dataset.mode = isShow ? 'show' : 'admin';
+  if (!isShow && wake) { wake.release().catch(() => {}); wake = null; }
+  const t = ++rv;
+  try {
+    if (!parts.length) return await homeView(t);
+    if (parts[0] === 'shoot') return await shootView(t, parts[1]);
+    if (parts[0] === 'series') return await seriesView(t, parts[1]);
+    if (isShow) return await showView(t, parts[1], parts[2]);
+    return await homeView(t);
+  } catch (e) {
+    console.error(e);
+    app.innerHTML = `<main><p class="empty">Something went wrong: ${esc(e.message)}</p><a class="btn" href="#/">Home</a></main>`;
+  }
+}
+
+/* ---- admin: list of shoots ---- */
+async function homeView(t) {
+  const shoots = (await R(store('shoots').getAll())).sort((a, b) => b.created - a.created);
+  if (t !== rv) return;
+  app.innerHTML = `
+    <header><h1>Photo shoots</h1></header>
+    <main>
+      <div class="row" style="margin-bottom:14px"><button class="btn primary" id="new">+ New photo shoot</button></div>
+      ${shoots.length ? `<div class="list">${shoots.map(s => `
+        <a class="item" href="#/shoot/${s.id}">
+          <div style="flex:1;min-width:0"><div>${esc(s.name)}</div><div class="muted">${new Date(s.created).toLocaleDateString()}</div></div>
+          <span class="muted">›</span>
+        </a>`).join('')}</div>` : `<p class="empty">No photo shoots yet. Tap “New photo shoot” to start.</p>`}
+    </main>`;
+  $('#new').onclick = async () => {
+    const name = prompt('Name of the photo shoot (for example "Couple – 26 Nov")');
+    if (!name || !name.trim()) return;
+    const id = uid();
+    await put('shoots', { id, name: name.trim(), created: Date.now() });
+    location.hash = `#/shoot/${id}`;
+  };
+}
+
+/* ---- admin: a shoot = main pictures + the pool of unsorted pictures ---- */
+async function shootView(t, id) {
+  const shoot = await get('shoots', id);
+  if (!shoot) return notFound();
+  const series = bySort(await byIndex('series', 'shootId', id));
+  const mains = await Promise.all(series.map(s => get('pics', s.mainId)));
+  const free = await pool(id);
+  if (t !== rv) return;
+  const sel = new Set();
+  app.innerHTML = `
+    <header><a class="btn" href="#/">‹</a><h1>${esc(shoot.name)}</h1></header>
+    <main>
+      <div class="row">
+        <button class="btn primary" id="addPics">+ Add pictures</button>
+        <button class="btn" id="show" ${series.length ? '' : 'disabled'}>Display mode ▶</button>
+        <button class="btn danger" id="delShoot">Delete shoot</button>
+      </div>
+
+      <h2 class="sec">Main pictures <span class="muted">${series.length} / 6</span></h2>
+      ${series.length ? `<div class="grid">${series.map((s, i) => `
+        <a class="cell" href="#/series/${s.id}">
+          ${mains[i] ? `<img src="${burl(mains[i].thumb)}" alt="">` : ''}
+          <span class="badge">${i + 1}</span>
+        </a>`).join('')}</div>` : `<p class="muted">No main pictures yet. Select some from the pictures below.</p>`}
+
+      <h2 class="sec">Pictures to sort <span class="muted">${free.length}</span></h2>
+      ${free.length ? `
+        <p class="muted">Tap the pictures you want, then choose “Make main” or “Delete”. Pictures you use leave this list.</p>
+        <div class="grid pick" id="poolGrid">${free.map(p => thumbCell(p.thumb, p.id)).join('')}</div>`
+        : `<p class="muted">Nothing left to sort. Use “+ Add pictures” to upload more.</p>`}
+      <div style="height:90px"></div>
+      <input type="file" id="fileIn" multiple>
+    </main>
+    <div class="bar" id="bar" hidden>
+      <span class="count" id="count"></span>
+      <button class="btn primary" id="mkMain">Make main</button>
+      <button class="btn danger" id="delSel">Delete</button>
+      <button class="btn" id="clearSel">Clear</button>
+    </div>`;
+
+  $('#addPics').onclick = () => $('#fileIn').click();
+  pickFiles($('#fileIn'), files => addToPool(id, files));
+  $('#show').onclick = () => location.hash = `#/show/${id}`;
+  $('#delShoot').onclick = async () => {
+    if (!confirm(`Delete "${shoot.name}" and all its pictures from this phone?`)) return;
+    await deleteShoot(id); location.hash = '#/';
+  };
+  if (free.length) {
+    const bar = $('#bar'), count = $('#count');
+    selectable($('#poolGrid'), bar, count, sel);
+    $('#mkMain').onclick = async () => {
+      if (await makeMains(id, [...sel])) route();
+    };
+    $('#delSel').onclick = async () => {
+      if (!confirm(`Delete ${sel.size} picture(s)?`)) return;
+      await deletePics([...sel]); route();
+    };
+    $('#clearSel').onclick = () => { sel.clear(); app.querySelectorAll('.cell.sel').forEach(c => c.classList.remove('sel')); selectable($('#poolGrid'), bar, count, sel); };
+  }
+}
+
+/* ---- admin: one pose = its pictures; pick more from the unsorted pool ---- */
+async function seriesView(t, sid) {
+  const s = await get('series', sid);
+  if (!s) return notFound();
+  const shoot = await get('shoots', s.shootId);
+  const pics = bySort(await byIndex('pics', 'seriesId', sid));
+  const free = await pool(s.shootId);
+  if (t !== rv) return;
+  const sel = new Set();
+  app.innerHTML = `
+    <header><a class="btn" href="#/shoot/${s.shootId}">‹</a><h1>${esc(shoot ? shoot.name : '')}</h1></header>
+    <main>
+      <div class="row">
+        <button class="btn danger" id="delSeries">Delete this pose</button>
+      </div>
+      <h2 class="sec">This pose <span class="muted">${pics.length} picture(s)</span></h2>
+      <p class="muted">The outlined one is the main picture on the customer mosaic. Tap a picture to set it as main or delete it.</p>
+      <div class="grid">${pics.map(p => `
+        <div class="cell ${p.id === s.mainId ? 'main' : ''}" data-pic="${p.id}">
+          <img src="${burl(p.thumb)}" alt="">
+          ${p.id === s.mainId ? '<span class="badge">Main</span>' : ''}
+        </div>`).join('')}</div>
+
+      <h2 class="sec">Unsorted pictures <span class="muted">${free.length}</span></h2>
+      ${free.length ? `
+        <p class="muted">Tap the pictures that belong to this pose, then press “Add”.</p>
+        <div class="grid pick" id="freeGrid">${free.map(p => thumbCell(p.thumb, p.id)).join('')}</div>`
+        : `<p class="muted">No unsorted pictures. Upload more from the shoot screen.</p>`}
+      <div style="height:90px"></div>
+    </main>
+    <div class="bar" id="bar" hidden>
+      <span class="count" id="count"></span>
+      <button class="btn primary" id="addSel">Add to this pose</button>
+      <button class="btn" id="clearSel">Clear</button>
+    </div>`;
+
+  app.querySelectorAll('[data-pic]').forEach(el => el.onclick = () => {
+    const p = pics.find(x => x.id === el.dataset.pic);
+    const opts = [];
+    if (p.id !== s.mainId) opts.push({ label: 'Set as main picture', fn: async () => { s.mainId = p.id; await put('series', s); route(); } });
+    opts.push({ label: 'Delete this picture', cls: 'danger', fn: async () => {
+      if (!confirm('Delete this picture?')) return;
+      const r = await deletePic(s, p);
+      if (r === 'gone') location.hash = `#/shoot/${s.shootId}`; else route();
+    } });
+    sheet(opts);
+  });
+  $('#delSeries').onclick = async () => {
+    if (!confirm('Delete this pose? Its pictures go back to the unsorted pictures.')) return;
+    await releaseSeries(sid); location.hash = `#/shoot/${s.shootId}`;
+  };
+  if (free.length) {
+    const bar = $('#bar'), count = $('#count');
+    selectable($('#freeGrid'), bar, count, sel);
+    $('#addSel').onclick = async () => { await addToSeries(s, [...sel]); route(); };
+    $('#clearSel').onclick = () => { sel.clear(); app.querySelectorAll('.cell.sel').forEach(c => c.classList.remove('sel')); selectable($('#freeGrid'), bar, count, sel); };
+  }
+}
+
+/* ---- customer display mode (white) ---- */
+async function showView(t, shootId, sid) {
+  if (!wake && navigator.wakeLock) { try { wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+
+  if (!sid) {
+    const series = bySort(await byIndex('series', 'shootId', shootId)).slice(0, 6);
+    const mains = await Promise.all(series.map(s => get('pics', s.mainId)));
+    if (t !== rv) return;
+    if (!series.length) { app.innerHTML = `<div class="blank">Nothing to display yet.</div>`; return; }
+    app.innerHTML = `
+      <div class="mosaic">
+        ${series.map((s, i) => `
+          <a class="tile ${series.length % 2 && i === series.length - 1 ? 'solo' : ''}" href="#/show/${shootId}/${s.id}">
+            ${mains[i] ? `<img src="${burl(mains[i].thumb)}" alt="">` : ''}
+          </a>`).join('')}
+      </div>
+      <div class="exitzone" aria-hidden="true"></div>`;
+    const z = $('.exitzone'); let timer;
+    const stop = () => clearTimeout(timer);
+    z.addEventListener('pointerdown', () => { timer = setTimeout(() => location.hash = '#/', 1500); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => z.addEventListener(ev, stop));
+    return;
+  }
+
+  const pics = bySort(await byIndex('pics', 'seriesId', sid));
+  if (t !== rv) return;
+  if (!pics.length) { location.hash = `#/show/${shootId}`; return; }
+  app.innerHTML = `
+    <div class="viewer" id="vw">${pics.map(p => `<img src="${burl(p.full)}" alt="">`).join('')}</div>
+    <div class="vbar"><a href="#/show/${shootId}">‹ Back</a><span class="vcount" id="cnt"></span></div>`;
+  const vw = $('#vw'), cnt = $('#cnt');
+  const upd = () => { const i = Math.round(vw.scrollLeft / vw.clientWidth); cnt.textContent = `${i + 1} / ${pics.length}`; };
+  vw.addEventListener('scroll', upd, { passive: true });
+  upd();
+}
+
+/* ============ start ============ */
+openDB()
+  .then(() => route())
+  .catch(e => { app.innerHTML = `<main><p class="empty">Could not open storage on this phone: ${esc(e.message)}</p></main>`; });
+window.addEventListener('hashchange', route);
+</script>
+</body>
+</html>
