@@ -8,6 +8,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
@@ -62,9 +63,11 @@ class MainActivity : AppCompatActivity() {
             webView.restoreState(savedInstanceState)
         }
 
-        onBackPressedDispatcher.addCallback(this) {
-            if (webView.canGoBack()) webView.goBack() else finish()
-        }
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (webView.canGoBack()) webView.goBack() else finish()
+            }
+        })
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
